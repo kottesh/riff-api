@@ -8,7 +8,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/api/song", require("./routes/song"));
-//app.use("/api/artist", require("./routes/artist"));
+app.use("/api/artist", require("./routes/artist"));
 //app.use("/api/album", require("./routes/album"));
 //app.use("/api/genre", require("./routes/genre"));
 

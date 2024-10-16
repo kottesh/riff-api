@@ -1,23 +1,16 @@
 const { PrismaClient } = require("@prisma/client");
-const cloudinary = require("../services/cloudinary-service");
-const firebase = require("../services/firebase-service");
 
 const prisma = new PrismaClient();
 
 const createSong = async (req, res) => {
     try {
-        const { title, duration, artist_id, album_id } = req.body;
-
-        const audio_file = req.files["audio_file"][0];
-        const cover_image = req.files["cover_image"][0];
-
-        const audio_url = await firebase.uploadAudio(audio_file);
-        const cover_url = await cloudinary.uploadImage(cover_image);
+        const { title, duration, artist_id, album_id, track_url, cover_url } =
+            req.body;
 
         const song = await prisma.track.create({
             title,
             duration,
-            fileUrl: audio_url,
+            fileUrl: track_url,
             coverUrl: cover_url,
             artist: {
                 connect: {
