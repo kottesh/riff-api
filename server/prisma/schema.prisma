@@ -31,7 +31,6 @@ model Artist {
   bio         String?
   image       String?
   tracks      Track[]
-  albums      Album[]
   followers   UserFollowingArtist[]
 
   createdAt   DateTime @default(now())
@@ -65,14 +64,11 @@ model Album {
   title       String
   coverUrl    String?
   releaseDate DateTime
-  artistId    String   @db.ObjectId
-  artist      Artist   @relation(fields: [artistId], references: [id])
   tracks      Track[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@index([title])
-  @@index([artistId])
 }
 
 model Playlist {
@@ -129,6 +125,7 @@ model PlayHistory {
 model Genre {
   id     String       @id @default(auto()) @map("_id") @db.ObjectId
   name   String       @unique
+  image  String
   tracks TrackGenre[]
 }
 
