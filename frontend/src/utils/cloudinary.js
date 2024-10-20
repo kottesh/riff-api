@@ -1,75 +1,51 @@
-//import { Readable } from "stream";
-//import { v2 as cloudinary } from "cloudinary";
-//
-//cloudinary.config({
-//    cloud_name: import.meta.env.VITE_CLOUDINARY_CLOUD_NAME,
-//    api_key: import.meta.env.VITE_CLOUDINARY_API_KEY,
-//    api_secret: import.meta.env.VITE_CLOUDINARY_API_SECRET,
-//});
-//
-//const bufferToStream = (buffer) => {
-//    const readable = new Readable();
-//    readable._read = () => {};
-//    readable.push(buffer);
-//    readable.push(null);
-//    return readable;
-//};
-//
-//const uploadImage = (file) => {
-//    return new Promise((resolve, reject) => {
-//        const stream = cloudinary.uploader.upload_stream(
-//            {
-//                resource_type: "image",
-//                folder: "covers",
-//            },
-//            (error, result) => {
-//                if (error) {
-//                    console.error("Cloudinary upload error:", error);
-//                    reject(new Error("Failed to upload the image."));
-//                } else {
-//                    resolve(result.secure_url);
-//                }
-//            }
-//        );
-//
-//        bufferToStream(file.buffer).pipe(stream); // pipe the buffer to the upload stream
-//    });
-//};
-//
-//export default uploadImage;
-//
-import { useEffect } from "react";
+import axios from "axios";
+import sha1 from "crypto-js/sha1";
 
-const uploadImage = (callback) => {
-    useEffect(() => {
-        const script = document.createElement("script");
-        script.src = "https://upload-widget.cloudinary.com/global/all.js";
-        script.async = true;
-        document.body.appendChild(script);
+const generateSignature = (paramsToSign) => {
+    const signatureString = Object.keys(paramsToSign)
+        .sort()
+        .map((key) => `${key}=${paramsToSign[key]}`)
+        .join("&");
 
-        return () => {
-            document.body.removeChild(script);
-        };
-    }, []);
+    return sha1(
+        signatureString + import.meta.env.VITE_CLOUDINARY_API_SECRET
+    ).toString();
+};
 
-    const openWidget = () => {
-        window.cloudinary
-            .createUploadWidget(
-                {
-                    cloudName: import.meta.env.VITE_CLOUDINARY_CLOUD_NAME,
-                    folder: "covers",
-                },
-                (error, result) => {
-                    if (!error && result && result.event === "success") {
-                        console.log("Upload successful", result.info);
-                        callback(result.info.secure_url);
-                    }
-                }
-            )
-            .open();
+const uploadImage = async (file) => {
+    if (!file) {
+        throw new Error("No file provided");
+    }
+
+    const timestamp = Math.round(new Date().getTime() / 1000);
+
+    const paramsToSign = {
+        timestamp: timestamp,
+        folder: "covers",
     };
 
-    return openWidget;
+    const signature = generateSignature(paramsToSign);
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("timestamp", timestamp);
+    formData.append("signature", signature);
+    formData.append("api_key", import.meta.env.VITE_CLOUDINARY_API_KEY);
+    formData.append("folder", "covers");
+
+    try {
+        const response = await axios.post(
+            `https://api.cloudinary.com/v1_1/${
+                import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
+            }/image/upload`,
+            formData
+        );
+
+        return response.data.secure_url;
+    } catch (error) {
+        console.error("Error uploading to Cloudinary:", error);
+        throw new Error("Failed to upload the image.");
+    }
 };
 
 export default uploadImage;

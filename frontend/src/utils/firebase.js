@@ -1,35 +1,35 @@
-const admin = require("firebase-admin");
-const serviceAcc = require("../../.riff-store.json");
+import { initializeApp } from "firebase/app";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
-admin.initializeApp({
-    credential: admin.credential.cert(serviceAcc),
-    storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
-});
+const firebaseConfig = {
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID,
+};
 
-const bucket = admin.storage().bucket();
+const app = initializeApp(firebaseConfig);
+const storage = getStorage(app);
 
-const uploadTrack = async (file) => {
-    const fileName = file.originalname;
-    const fileUpload = bucket.file(fileName);
+const uploadAudio = async (file) => {
+    if (!file) {
+        throw new Error("No file provided");
+    }
 
     try {
-        await file_upload.save(file.buffer, {
-            metadata: {
-                contentType: file.mimetype,
-            },
-        });
+        const fileName = `audio/${Date.now()}-${file.name}`;
+        const storageRef = ref(storage, fileName);
 
-        const [url] = await file_upload.getSignedUrl({
-            action: "read",
-            expires: "01-01-3204",
-        });
+        await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(storageRef);
 
-        return url;
-    } catch (err) {
-        console.log("ERROR: failed to upload music to firebase bucket", err);
-        throw new Error("failed to upload music file to firebase bucket");
+        return downloadURL;
+    } catch (error) {
+        console.error("Error uploading to Firebase:", error);
+        throw new Error("Failed to upload the audio file to Firebase.");
     }
 };
 
-module.exports = uploadTrack;
-
+export default uploadAudio;
