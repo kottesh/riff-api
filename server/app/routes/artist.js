@@ -15,3 +15,4 @@ router.put("/:id", updateArtist);
 router.delete("/:id", deleteArtist);
 
 module.exports = router;
+

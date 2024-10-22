@@ -29,11 +29,10 @@ const getAllArtist = async (req, res) => {
         const artists = await prisma.artist.findMany({
             include: {
                 tracks: true,
-                albums: true,
             },
         });
 
-        res.status(200).json({ artists });
+        res.json({ artists });
     } catch (err) {
         console.error(err);
         res.status(500).json({
@@ -116,3 +115,4 @@ module.exports = {
     updateArtist,
     deleteArtist,
 };
+
