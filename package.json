@@ -1,5 +1,5 @@
 {
-  "name": "ui",
+  "name": "riff-api",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -27,9 +27,15 @@
     "react-hook-form": "^7.53.0",
     "sonner": "^1.5.0",
     "tailwindcss": "^3.4.14",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "@prisma/client": "^5.20.0",
+    "cors": "^2.8.5",
+    "date-fns": "^4.1.0",
+    "express": "^4.21.1"
   },
   "devDependencies": {
+    "nodemon": "^3.1.7",
+    "prisma": "^5.20.0",
     "@eslint/js": "^9.11.1",
     "@types/react": "^18.3.10",
     "@types/react-dom": "^18.3.0",
