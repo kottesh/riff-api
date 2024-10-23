@@ -10,7 +10,7 @@ const FORMS = {
     SONG: "song",
     ALBUM: "album",
     GENRE: "genre",
-    //GENRESONGS: "genre songs",
+    GENRESONGS: "genre songs",
 };
 
 const App = () => {
@@ -43,7 +43,7 @@ const App = () => {
             {/* Floating Navigation Bar Container */}
             <div className="fixed top-4 left-0 right-0 z-50">
                 <div className="max-w-7xl mx-auto px-4">
-                    <nav className="bg-white rounded-lg shadow-lg">
+                    <nav className="bg-white rounded-lg shadow-lg border-2 border-slate-100">
                         <div className="px-4">
                             <div className="flex justify-between h-16">
                                 <div className="flex items-center">

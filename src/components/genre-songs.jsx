@@ -92,7 +92,7 @@ const SongsGenreForm = () => {
                         <option value="">Select a track...</option>
                         {tracks.map((track) => (
                             <option key={track.id} value={track.id}>
-                                {track.title} - {track.artist?.name}
+                                {track.title}
                             </option>
                         ))}
                     </select>
