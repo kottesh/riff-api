@@ -333,11 +333,15 @@ const getSongsByArtist = async (req, res) => {
         const { page = 1, limit = 10 } = req.query;
 
         const tracks = await prisma.track.findMany({
-            where: { artistId },
+            where: {
+                aritstIds: {
+                    include: {artistId}
+                },
+            },
             skip: (page - 1) * limit,
             take: parseInt(limit),
             include: {
-                artist: true,
+                artists: true,
                 album: true,
                 trackGenres: {
                     include: {
@@ -369,7 +373,7 @@ const getSongsByAlbum = async (req, res) => {
         const tracks = await prisma.track.findMany({
             where: { albumId },
             include: {
-                artist: true,
+                artists: true,
                 trackGenres: {
                     include: {
                         genre: true,

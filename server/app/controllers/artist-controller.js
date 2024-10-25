@@ -2,6 +2,94 @@ const { PrismaClient } = require("@prisma/client");
 
 const prisma = new PrismaClient();
 
+const searchArtists = async (req, res) => {
+    try {
+        const {
+            query,
+            page = 1,
+            limit = 10,
+            sortBy = 'name',
+            order = 'asc'
+        } = req.query;
+
+        const skip = (page - 1) * Number(limit);
+
+        const whereCondition = query ? {
+            OR: [
+                {
+                    name: {
+                        contains: query,
+                        mode: 'insensitive'
+                    }
+                },
+                {
+                    bio: {
+                        contains: query,
+                        mode: 'insensitive'
+                    }
+                },
+                {
+                    tracks: {
+                        some: {
+                            title: {
+                                contains: query,
+                                mode: 'insensitive'
+                            }
+                        }
+                    }
+                }
+            ]
+        } : {};
+
+        const orderBy = {};
+        orderBy[sortBy] = order;
+
+        const totalCount = await prisma.artist.count({
+            where: whereCondition
+        });
+
+        const artists = await prisma.artist.findMany({
+            where: whereCondition,
+            include: {
+                tracks: {
+                    include: {
+                        album: true,
+                        trackGenres: {
+                            include: {
+                                genre: true
+                            }
+                        }
+                    }
+                },
+                followers: {
+                    select: {
+                        userId: true
+                    }
+                }
+            },
+            orderBy,
+            skip,
+            take: Number(limit)
+        });
+
+        res.json({
+            data: artists,
+            pagination: {
+                total: totalCount,
+                page: Number(page),
+                limit: Number(limit),
+                totalPages: Math.ceil(totalCount / Number(limit))
+            }
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            message: "Failed to search artists",
+            error: error.message
+        });
+    }
+};
+
 const createArtist = async (req, res) => {
     try {
         const { name, bio, image } = req.body;
@@ -12,31 +100,59 @@ const createArtist = async (req, res) => {
                 bio,
                 image,
             },
+            include: {
+                tracks: true,
+                followers: {
+                    select: {
+                        userId: true
+                    }
+                }
+            }
         });
 
-        res.status(200).json({
-            message: "artist created successfully.",
-            artist,
+        res.status(201).json({
+            message: "Artist created successfully",
+            data: artist
         });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "can't create the artists" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            message: "Failed to create artist",
+            error: error.message
+        });
     }
 };
 
-const getAllArtist = async (req, res) => {
+const getAllArtists = async (req, res) => {
     try {
         const artists = await prisma.artist.findMany({
             include: {
-                tracks: true,
+                tracks: {
+                    include: {
+                        album: true,
+                        trackGenres: {
+                            include: {
+                                genre: true
+                            }
+                        }
+                    }
+                },
+                followers: {
+                    select: {
+                        userId: true
+                    }
+                }
             },
         });
 
-        res.json({ artists });
-    } catch (err) {
-        console.error(err);
+        res.json({
+             artists
+        });
+    } catch (error) {
+        console.error(error);
         res.status(500).json({
-            message: "failed to get all the artist",
+            message: "Failed to get artists",
+            error: error.message
         });
     }
 };
@@ -50,69 +166,144 @@ const getArtistById = async (req, res) => {
                 id: id,
             },
             include: {
-                tracks: true,
-                albums: true,
+                tracks: {
+                    include: {
+                        album: true,
+                        trackGenres: {
+                            include: {
+                                genre: true
+                            }
+                        }
+                    }
+                },
+                followers: {
+                    select: {
+                        userId: true
+                    }
+                }
             },
         });
 
         if (!artist) {
             return res.status(404).json({
-                message: "Artist not found",
+                message: "Artist not found"
             });
         }
 
-        res.status(200).json({
-            artist,
+        res.json({
+            data: artist
         });
     } catch (error) {
         console.error(error);
         res.status(500).json({
-            message: "failed to get the artist",
+            message: "Failed to get artist",
+            error: error.message
         });
     }
 };
 
 const updateArtist = async (req, res) => {
     try {
+        const { id } = req.params;
+        const { name, bio, image } = req.body;
+
         const updatedArtist = await prisma.artist.update({
             where: {
-                id: req.params.id,
+                id: id,
             },
             data: {
-                ...req.body,
+                name,
+                bio,
+                image,
             },
+            include: {
+                tracks: true,
+                followers: {
+                    select: {
+                        userId: true
+                    }
+                }
+            }
         });
-
-        res.json(updatedArtist);
+        res.json({
+            message: "Artist updated successfully",
+             updatedArtist
+        });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "failed to update the artist" });
+        res.status(500).json({
+            message: "Failed to update artist",
+            error: error.message
+        });
     }
 };
 
 const deleteArtist = async (req, res) => {
-    const id = req.params.id;
-
     try {
+        const { id } = req.params;
+
         await prisma.artist.delete({
             where: {
                 id: id,
             },
         });
+
         res.status(204).send();
-    } catch (err) {
-        console.error(err);
+    } catch (error) {
+        console.error(error);
         res.status(500).json({
-            message: "failed to delete the artist",
+            message: "Failed to delete artist",
+            error: error.message
+        });
+    }
+};
+
+const getArtistTracks = async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const tracks = await prisma.track.findMany({
+            where: {
+                artistIds: {
+                    has: id
+                }
+            },
+            include: {
+                album: true,
+                artists: true,
+                trackGenres: {
+                    include: {
+                        genre: true
+                    }
+                }
+            }
+        });
+
+        res.json({
+             tracks
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            message: "Failed to get artist tracks",
+            error: error.message
         });
     }
 };
 
 module.exports = {
+    searchArtists,
     createArtist,
-    getAllArtist,
+    getAllArtists,
     getArtistById,
     updateArtist,
     deleteArtist,
+    getArtistTracks
 };
+
+
+
+
+
+
 

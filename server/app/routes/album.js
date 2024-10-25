@@ -7,8 +7,10 @@ const {
     updateAlbum,
     deleteAlbum,
     getAlbumTracks,
+    searchAlbums,
 } = require("../controllers/album-controller");
 
+router.get("/search", searchAlbums);
 router.get("/", getAllAlbums);
 router.get("/:id", getAlbumById);
 router.post("/", createAlbum);

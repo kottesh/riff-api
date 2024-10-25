@@ -2,10 +2,96 @@ const { PrismaClient } = require("@prisma/client");
 
 const prisma = new PrismaClient();
 
+const searchAlbums = async (req, res, next) => {
+    try {
+        const { 
+            query,
+            page = 1,
+            limit = 10,
+            sortBy = 'releaseDate',
+            order = 'desc'
+        } = req.query;
+
+        const skip = (page - 1) * Number(limit);
+
+        const whereCondition = query ? {
+            OR: [
+                {
+                    title: {
+                        contains: query,
+                        mode: 'insensitive'
+                    }
+                },
+                {
+                    tracks: {
+                        some: {
+                            title: {
+                                contains: query,
+                                mode: 'insensitive'
+                            }
+                        }
+                    }
+                }
+            ]
+        } : {};
+
+        const orderBy = {};
+        orderBy[sortBy] = order;
+
+        const totalCount = await prisma.album.count({
+            where: whereCondition
+        });
+
+        const albums = await prisma.album.findMany({
+            where: whereCondition,
+            include: {
+                tracks: {
+                    include: {
+                        artists: {
+                            select: {
+                                id: true,
+                                name: true,
+                                image: true
+                            }
+                        }
+                    }
+                }
+            },
+            orderBy,
+            skip,
+            take: Number(limit)
+        });
+
+        res.json({
+            data: albums,
+            pagination: {
+                total: totalCount,
+                page: Number(page),
+                limit: Number(limit),
+                totalPages: Math.ceil(totalCount / Number(limit))
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 const getAllAlbums = async (req, res, next) => {
     try {
         const albums = await prisma.album.findMany({
-            include: { tracks: true },
+            include: { 
+                tracks: {
+                    include: {
+                        artists: {
+                            select: {
+                                id: true,
+                                name: true,
+                                image: true
+                            }
+                        }
+                    }
+                }
+            },
         });
         res.json(albums);
     } catch (error) {
@@ -18,7 +104,19 @@ const getAlbumById = async (req, res, next) => {
         const { id } = req.params;
         const album = await prisma.album.findUnique({
             where: { id },
-            include: { tracks: true },
+            include: { 
+                tracks: {
+                    include: {
+                        artists: {
+                            select: {
+                                id: true,
+                                name: true,
+                                image: true
+                            }
+                        }
+                    }
+                }
+            },
         });
         if (!album) {
             return res.status(404).json({ message: "Album not found" });
@@ -41,6 +139,9 @@ const createAlbum = async (req, res, next) => {
                 coverUrl,
                 releaseDate: parsedDate,
             },
+            include: {
+                tracks: true
+            }
         });
 
         res.status(201).json(album);
@@ -60,6 +161,9 @@ const updateAlbum = async (req, res, next) => {
                 coverUrl,
                 releaseDate: new Date(releaseDate),
             },
+            include: {
+                tracks: true
+            }
         });
         res.json(album);
     } catch (error) {
@@ -84,7 +188,15 @@ const getAlbumTracks = async (req, res, next) => {
         const { id } = req.params;
         const tracks = await prisma.track.findMany({
             where: { albumId: id },
-            include: { artist: true },
+            include: {
+                artists: {
+                    select: {
+                        id: true,
+                        name: true,
+                        image: true
+                    }
+                }
+            },
         });
         res.json(tracks);
     } catch (error) {
@@ -93,6 +205,7 @@ const getAlbumTracks = async (req, res, next) => {
 };
 
 module.exports = {
+    searchAlbums,
     getAllAlbums,
     getAlbumById,
     createAlbum,
@@ -100,4 +213,3 @@ module.exports = {
     deleteAlbum,
     getAlbumTracks,
 };
-
