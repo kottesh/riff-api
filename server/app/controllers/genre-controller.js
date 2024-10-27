@@ -103,9 +103,43 @@ const addSong = async (req, res) => {
     }
 };
 
+
 const getAllGenres = async (req, res) => {
     try {
+        const { 
+            search,
+            page = 1,
+            limit = 20,
+            sortBy = 'name',
+            order = 'asc'
+        } = req.query;
+
+        // Convert page and limit to numbers
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const skip = (pageNum - 1) * limitNum;
+
+        // Build the where clause for search
+        const whereClause = search ? {
+            name: {
+                contains: search,
+                mode: 'insensitive'
+            }
+        } : {};
+
+        // Get total count for pagination
+        const totalGenres = await prisma.genre.count({
+            where: whereClause
+        });
+
+        // Build sort object
+        const orderBy = {
+            [sortBy]: order
+        };
+
+        // Fetch genres with pagination, search, and sorting
         const genres = await prisma.genre.findMany({
+            where: whereClause,
             include: {
                 tracks: {
                     include: {
@@ -114,33 +148,108 @@ const getAllGenres = async (req, res) => {
                                 artists: {
                                     select: {
                                         id: true,
-                                        name: true
+                                        name: true,
+                                        image: true
                                     }
                                 },
-                                album: true,
-                            },
-                        },
-                    },
-                },
+                                album: {
+                                    select: {
+                                        id: true,
+                                        title: true,
+                                        coverUrl: true,
+                                        releaseDate: true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             },
+            orderBy,
+            skip,
+            take: limitNum
         });
 
-        // Transform the response to include track count and simplified track data
+        // Transform the response
         const transformedGenres = genres.map((genre) => ({
-            ...genre,
+            id: genre.id,
+            name: genre.name,
+            image: genre.image,
             trackCount: genre.tracks.length,
             tracks: genre.tracks.map((t) => ({
-                ...t.track,
-                genreId: t.genreId,
-            })),
+                id: t.track.id,
+                title: t.track.title,
+                duration: t.track.duration,
+                fileUrl: t.track.fileUrl,
+                coverUrl: t.track.coverUrl,
+                album: t.track.album ? {
+                    id: t.track.album.id,
+                    title: t.track.album.title,
+                    coverUrl: t.track.album.coverUrl,
+                    releaseDate: t.track.album.releaseDate
+                } : null,
+                artists: t.track.artists
+            }))
         }));
 
-        res.json({ genres: transformedGenres });
+        res.json({
+            genres: transformedGenres,
+            pagination: {
+                currentPage: pageNum,
+                totalPages: Math.ceil(totalGenres / limitNum),
+                totalItems: totalGenres,
+                itemsPerPage: limitNum,
+                hasNextPage: pageNum < Math.ceil(totalGenres / limitNum),
+                hasPreviousPage: pageNum > 1
+            }
+        });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Failed to get all genres" });
+        console.error('Error in getAllGenres:', err);
+        res.status(500).json({ 
+            error: "Failed to get genres",
+            message: process.env.NODE_ENV === 'development' ? err.message : undefined
+        });
     }
 };
+
+//const getAllGenres = async (req, res) => {
+//    try {
+//        const genres = await prisma.genre.findMany({
+//            include: {
+//                tracks: {
+//                    include: {
+//                        track: {
+//                            include: {
+//                                artists: {
+//                                    select: {
+//                                        id: true,
+//                                        name: true
+//                                    }
+//                                },
+//                                album: true,
+//                            },
+//                        },
+//                    },
+//                },
+//            },
+//        });
+//
+//        // Transform the response to include track count and simplified track data
+//        const transformedGenres = genres.map((genre) => ({
+//            ...genre,
+//            trackCount: genre.tracks.length,
+//            tracks: genre.tracks.map((t) => ({
+//                ...t.track,
+//                genreId: t.genreId,
+//            })),
+//        }));
+//
+//        res.json({ genres: transformedGenres });
+//    } catch (err) {
+//        console.error(err);
+//        res.status(500).json({ error: "Failed to get all genres" });
+//    }
+//};
 
 const getGenreById = async (req, res) => {
     try {

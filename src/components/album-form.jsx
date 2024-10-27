@@ -21,9 +21,9 @@ const AlbumForm = () => {
     const [selectedCover, setSelectedCover] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const currentDate = new Date();
-    const [selectedMonth, setSelectedMonth] = useState("");
-    const [selectedYear, setSelectedYear] = useState("");
+    // Initialize with null instead of empty string for better value handling
+    const [selectedMonth, setSelectedMonth] = useState(null);
+    const [selectedYear, setSelectedYear] = useState(null);
 
     const {
         register,
@@ -59,22 +59,23 @@ const AlbumForm = () => {
     const years = Array.from({ length: 100 }, (_, i) => currentYear - i);
 
     const handleDateChange = (type, value) => {
-        if (!value) {
-            if (type === "month") setSelectedMonth("");
-            if (type === "year") setSelectedYear("");
-            return;
+        // Convert empty string to null for consistency
+        const parsedValue = value === "" ? null : Number(value);
+
+        if (type === "month") {
+            setSelectedMonth(parsedValue);
+        } else if (type === "year") {
+            setSelectedYear(parsedValue);
         }
 
-        const newMonth = type === "month" ? value : selectedMonth;
-        const newYear = type === "year" ? value : selectedYear;
+        // Only set the date if both month and year are selected
+        const newMonth = type === "month" ? parsedValue : selectedMonth;
+        const newYear = type === "year" ? parsedValue : selectedYear;
 
-        if (newMonth !== "" && newYear !== "") {
+        if (newMonth !== null && newYear !== null) {
             const newDate = new Date(Date.UTC(newYear, newMonth, 1, 12, 0, 0));
             setValue("releaseDate", newDate);
         }
-
-        if (type === "month") setSelectedMonth(value);
-        if (type === "year") setSelectedYear(value);
     };
 
     const handleCoverChange = (event) => {
@@ -92,7 +93,7 @@ const AlbumForm = () => {
     };
 
     const onSubmit = async (data) => {
-        if (!selectedMonth || !selectedYear) {
+        if (selectedMonth === null || selectedYear === null) {
             toast.error("Please select both month and year");
             return;
         }
@@ -125,8 +126,8 @@ const AlbumForm = () => {
             console.log("Created Album:", response.data.album);
             reset();
             setSelectedCover(null);
-            setSelectedMonth("");
-            setSelectedYear("");
+            setSelectedMonth(null);
+            setSelectedYear(null);
             toast.success("Album Created Successfully");
         } catch (err) {
             console.error(err);
@@ -178,14 +179,11 @@ const AlbumForm = () => {
                             </label>
                             <select
                                 id="month"
-                                value={selectedMonth}
+                                value={
+                                    selectedMonth === null ? "" : selectedMonth
+                                }
                                 onChange={(e) =>
-                                    handleDateChange(
-                                        "month",
-                                        e.target.value
-                                            ? parseInt(e.target.value)
-                                            : ""
-                                    )
+                                    handleDateChange("month", e.target.value)
                                 }
                                 className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 ease-in-out"
                             >
@@ -207,14 +205,11 @@ const AlbumForm = () => {
                             </label>
                             <select
                                 id="year"
-                                value={selectedYear}
+                                value={
+                                    selectedYear === null ? "" : selectedYear
+                                }
                                 onChange={(e) =>
-                                    handleDateChange(
-                                        "year",
-                                        e.target.value
-                                            ? parseInt(e.target.value)
-                                            : ""
-                                    )
+                                    handleDateChange("year", e.target.value)
                                 }
                                 className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 ease-in-out"
                             >
@@ -234,7 +229,7 @@ const AlbumForm = () => {
                         </p>
                     )}
 
-                    {selectedMonth !== "" && selectedYear !== "" && (
+                    {selectedMonth !== null && selectedYear !== null && (
                         <p className="text-sm text-gray-500">
                             Selected: {months[selectedMonth]} {selectedYear}
                         </p>

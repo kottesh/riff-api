@@ -348,6 +348,7 @@ const getSongsByArtist = async (req, res) => {
                         genre: true,
                     },
                 },
+                artists: true,
             },
         });
 
