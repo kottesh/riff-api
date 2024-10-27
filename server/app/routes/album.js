@@ -8,6 +8,7 @@ const {
     deleteAlbum,
     getAlbumTracks,
     searchAlbums,
+    getAlbumsByArtistId,
 } = require("../controllers/album-controller");
 
 router.get("/search", searchAlbums);
@@ -17,5 +18,6 @@ router.post("/", createAlbum);
 router.put("/:id", updateAlbum);
 router.delete("/:id", deleteAlbum);
 router.get("/:id/tracks", getAlbumTracks);
+router.get("/artist/:artistId",getAlbumsByArtistId);
 
 module.exports = router;

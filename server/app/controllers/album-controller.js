@@ -204,6 +204,72 @@ const getAlbumTracks = async (req, res, next) => {
     }
 };
 
+const getAlbumsByArtistId = async (req, res) => {
+    try {
+        const { artistId } = req.params;
+        const { page = 1, limit = 10 } = req.query;
+
+        // Find all tracks that contain this artist's ID in their artistIds array
+        const tracks = await prisma.track.findMany({
+            where: {
+                artistIds: {
+                    has: artistId  // Use 'has' operator to check array membership
+                }
+            },
+            select: {
+                albumId: true
+            }
+        });
+
+        // Get unique album IDs
+        const albumIds = [...new Set(tracks
+            .map(track => track.albumId)
+            .filter(id => id !== null))];
+
+        // Fetch the albums with pagination
+        const albums = await prisma.album.findMany({
+            where: {
+                id: {
+                    in: albumIds
+                }
+            },
+            include: {
+                tracks: {
+                    include: {
+                        artists: true
+                    }
+                }
+            },
+            orderBy: {
+                releaseDate: 'desc'
+            },
+            skip: (parseInt(page) - 1) * parseInt(limit),
+            take: parseInt(limit)
+        });
+
+        // Get total count for pagination
+        const total = await prisma.album.count({
+            where: {
+                id: {
+                    in: albumIds
+                }
+            }
+        });
+
+        res.status(200).json({
+            albums,
+            pagination: {
+                total,
+                page: parseInt(page),
+                pages: Math.ceil(total / parseInt(limit))
+            }
+        });
+
+    } catch (error) {
+        console.error('Error fetching albums:', error);
+        res.status(500).json({ error: "Failed to fetch artist albums" });
+    }
+};
 module.exports = {
     searchAlbums,
     getAllAlbums,
@@ -212,4 +278,5 @@ module.exports = {
     updateAlbum,
     deleteAlbum,
     getAlbumTracks,
+    getAlbumsByArtistId
 };

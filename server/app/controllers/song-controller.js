@@ -334,14 +334,13 @@ const getSongsByArtist = async (req, res) => {
 
         const tracks = await prisma.track.findMany({
             where: {
-                aritstIds: {
-                    include: {artistId}
+                artistIds: {
+                    has: artistId ,
                 },
             },
             skip: (page - 1) * limit,
             take: parseInt(limit),
             include: {
-                artists: true,
                 album: true,
                 trackGenres: {
                     include: {
@@ -351,7 +350,13 @@ const getSongsByArtist = async (req, res) => {
             },
         });
 
-        const total = await prisma.track.count({ where: { artistId } });
+        const total = await prisma.track.count({
+            where: {
+                artistIds: {
+                    has: artistId,
+                },
+            },
+        });
 
         res.status(200).json({
             tracks,
