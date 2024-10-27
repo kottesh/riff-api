@@ -341,6 +341,7 @@ const getSongsByArtist = async (req, res) => {
             skip: (page - 1) * limit,
             take: parseInt(limit),
             include: {
+                artists:true,
                 album: true,
                 trackGenres: {
                     include: {

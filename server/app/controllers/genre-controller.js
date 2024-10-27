@@ -153,7 +153,7 @@ const getGenreById = async (req, res) => {
                     include: {
                         track: {
                             include: {
-                                artist: true,
+                                artists: true,
                                 album: true,
                             },
                         },

@@ -209,11 +209,11 @@ const getAlbumsByArtistId = async (req, res) => {
         const { artistId } = req.params;
         const { page = 1, limit = 10 } = req.query;
 
-        // Find all tracks that contain this artist's ID in their artistIds array
+        
         const tracks = await prisma.track.findMany({
             where: {
                 artistIds: {
-                    has: artistId  // Use 'has' operator to check array membership
+                    has: artistId  
                 }
             },
             select: {
@@ -221,12 +221,11 @@ const getAlbumsByArtistId = async (req, res) => {
             }
         });
 
-        // Get unique album IDs
+        
         const albumIds = [...new Set(tracks
             .map(track => track.albumId)
             .filter(id => id !== null))];
 
-        // Fetch the albums with pagination
         const albums = await prisma.album.findMany({
             where: {
                 id: {
@@ -247,7 +246,6 @@ const getAlbumsByArtistId = async (req, res) => {
             take: parseInt(limit)
         });
 
-        // Get total count for pagination
         const total = await prisma.album.count({
             where: {
                 id: {
